@@ -11,10 +11,9 @@ VL53L0X sensor;
 void setup() {
   Serial.begin(9600);
   // Use 21, 22 as SDA/SCL
-  Wire.begin();
-
+  // Wire.begin();
   // Use non-standard SDA/SCL pins
-  // Wire.begin(5, 17);
+  Wire.begin(5, 17);
 
   sensor.setTimeout(500);
   if (!sensor.init()) {
