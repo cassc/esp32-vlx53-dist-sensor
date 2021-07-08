@@ -1,26 +1,42 @@
 #include "net.h"
+AutoConnect portal;
+AutoConnectConfig config("make_tof", "12345678");
 
-WebServer Server;
-AutoConnect    Portal(Server);
-
-String getIp(){
-    return String(WiFi.localIP());
+String getIp()
+{
+    return WiFi.localIP().toString();
 }
 
-void rootPage() {
-  auto content = String(mac) + "\n" + getIp();
-  Server.send(200, "text/plain", content);
+void startAutoConnect()
+{
+    // Allow config after AP configuration
+    config.retainPortal = true;
+
+#ifdef E32_USE_STATIC_IP
+    config.staip = E32_STATIC_IP;
+    config.staGateway = E32_STATIC_GATEWAY;
+    config.staNetmask = E32_STATIC_MASK;
+    config.dns1 = E32_STATIC_DNS;
+#endif
+
+    config.autoReconnect = true;
+    portal.config(config);
+
+    if (portal.begin())
+    {
+        Serial.println("WiFi connected: " + WiFi.localIP().toString());
+    }
 }
 
-void startAutoConnect(){
-  Server.on("/", rootPage);
-  if (Portal.begin()) {
-    Serial.println("WiFi connected: " + WiFi.localIP().toString());
-  }
+void setUpNetwork()
+{
+
+    startAutoConnect();
+    mac = WiFi.macAddress();
+    mac.replace(":", "");
 }
 
-void setUpNetwork(){
-  startAutoConnect();
-  mac = WiFi.macAddress();
-  mac.replace(":", "");
+void portalLoop()
+{
+    portal.handleClient();
 }

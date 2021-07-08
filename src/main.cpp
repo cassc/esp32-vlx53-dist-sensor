@@ -51,10 +51,8 @@ void loop() {
     Serial.println("TIMEOUT");
     return;
   }
-   
-  
 
-  if (abs(d - dist) > 5){
+  if (abs(d - dist) > 10){
     sprintf(mqMsgBuf, "{\"dist\": %d, \"tpe\": \"dist\"}", d);
     publisthMqtt(mqMsgBuf);
   }

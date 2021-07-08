@@ -9,18 +9,17 @@ Reads distance from a VL53L0X sensor and sends the distance through MQTT when th
 
 ```json
 {
-  "ip": "2164391946",
+  "ip": "10.0.2.129",
   "mac": "98F4AB6BD460",
   "tpe": "start"
 }
 ```
 
-* `tof/{MAC_ADDRESS}`, for example `tof/98F4AB6BD460`, for sending distance data:
+* `tof/{MAC_ADDRESS}`, for example `tof/98F4AB6BD460`, for broadcasting distance data:
 
 ```json
 {
-  "ip": "2164391946",
-  "mac": "98F4AB6BD460",
-  "tpe": "start"
+  "dist": 80,
+  "tpe": "dist"
 }
 ```

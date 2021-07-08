@@ -1,3 +1,5 @@
+erase:
+	pio run --target erase
 upload:
 		platformio run --target upload
 clean:
