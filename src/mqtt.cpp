@@ -1,11 +1,11 @@
 #include "mqtt.h"
 
-
 // C.F.,:
 // https://github.com/marvinroger/async-mqtt-client/blob/develop/examples/FullyFeatured-ESP32/FullyFeatured-ESP32.ino
 AsyncMqttClient mqttClient;
 TimerHandle_t mqttReconnectTimer;
 TimerHandle_t wifiReconnectTimer;
+
 
 void connectToMqtt()
 {
@@ -16,6 +16,12 @@ void connectToMqtt()
 void onMqttConnect(bool sessionPresent)
 {
   Serial.println("MQTT connected!");
+  char buf[128];
+  sprintf(buf, "{\"ip\": \"%s\", \"mac\": \"%s\", \"tpe\": \"start\"}", getIp().c_str(), mac.c_str());
+
+  String topic = String("tof/") + mac ;
+  mqttClient.publish("tof", 0, false, buf);
+  publisthMqtt(buf);
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
@@ -74,8 +80,7 @@ void setupMqtt()
   connectToMqtt();
 }
 
-void publisthMqtt(char* payload)
-{
-  String topic = String("dist/") + mac;
-  mqttClient.publish(topic.c_str(), 0, true, payload);
+void publisthMqtt(char *payload){
+  String topic = String("tof/") + mac ;
+  mqttClient.publish(topic.c_str(), 0, false, payload);
 }

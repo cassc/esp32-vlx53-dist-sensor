@@ -7,5 +7,6 @@
 
 extern String mac;
 void setUpNetwork();
+String getIp();
 
 #endif

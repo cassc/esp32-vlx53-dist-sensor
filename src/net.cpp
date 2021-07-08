@@ -3,9 +3,12 @@
 WebServer Server;
 AutoConnect    Portal(Server);
 
+String getIp(){
+    return String(WiFi.localIP());
+}
 
 void rootPage() {
-  char content[] = "Hello, world";
+  auto content = String(mac) + "\n" + getIp();
   Server.send(200, "text/plain", content);
 }
 

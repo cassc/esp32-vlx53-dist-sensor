@@ -10,7 +10,7 @@ const int GPIO_SCL = 17;
 
 uint16_t dist = 0;
 VL53L0X sensor;
-const int DIST_READ_INTERVAL_MS = 100;
+const int DIST_READ_INTERVAL_MS = 50;
 
 char mqMsgBuf[128];
 
@@ -55,7 +55,7 @@ void loop() {
   
 
   if (abs(d - dist) > 5){
-    sprintf(mqMsgBuf, "{'dist': %d}", d);
+    sprintf(mqMsgBuf, "{\"dist\": %d, \"tpe\": \"dist\"}", d);
     publisthMqtt(mqMsgBuf);
   }
 
