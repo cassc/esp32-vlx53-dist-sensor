@@ -1,21 +1,24 @@
-/* This example shows how to use continuous mode to take
-range measurements with the VL53L0X. It is based on
-vl53l0x_ContinuousRanging_Example.c from the VL53L0X API.
-The range readings are in units of mm. */
-
 #include <VL53L0X.h>
 #include <Wire.h>
 
-VL53L0X sensor;
+#include "mqtt.h"
+String mac;
 
-void setup() {
-  Serial.begin(9600);
-  // Use 21, 22 as SDA/SCL
-  // Wire.begin();
-  // Use non-standard SDA/SCL pins
-  Wire.begin(5, 17);
+// PINs for the distance sensor
+const int GPIO_SDA = 5;
+const int GPIO_SCL = 17;
+
+uint16_t dist = 0;
+VL53L0X sensor;
+const int DIST_READ_INTERVAL_MS = 100;
+
+char mqMsgBuf[128];
+
+void startDistanceSensor(){
+  Wire.begin(GPIO_SDA, GPIO_SCL);
 
   sensor.setTimeout(500);
+
   if (!sensor.init()) {
     Serial.println("Failed to detect and initialize sensor!");
     while (1) {
@@ -26,14 +29,36 @@ void setup() {
   // fast as possible).  To use continuous timed mode
   // instead, provide a desired inter-measurement period in
   // ms (e.g. sensor.startContinuous(100)).
-  sensor.startContinuous();
+  sensor.startContinuous(DIST_READ_INTERVAL_MS);
+
+}
+
+void setup() {
+  delay(1000);
+  Serial.begin(115200);
+
+  startDistanceSensor();
+
+  setUpNetwork();
+
+  setupMqtt();
 }
 
 void loop() {
-  Serial.print(sensor.readRangeContinuousMillimeters());
+  auto d = sensor.readRangeContinuousMillimeters();
+
   if (sensor.timeoutOccurred()) {
-    Serial.print(" TIMEOUT");
+    Serial.println("TIMEOUT");
+    return;
+  }
+   
+  
+
+  if (abs(d - dist) > 5){
+    sprintf(mqMsgBuf, "{'dist': %d}", d);
+    publisthMqtt(mqMsgBuf);
   }
 
-  Serial.println();
+  dist = d;
+
 }
