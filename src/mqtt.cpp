@@ -17,7 +17,7 @@ void onMqttConnect(bool sessionPresent)
 {
   Serial.println("MQTT connected!");
   char buf[128];
-  sprintf(buf, "{\"ip\": \"%s\", \"mac\": \"%s\", \"tpe\": \"start\"}", getIp().c_str(), mac.c_str());
+  sprintf(buf, "{\"ip\": \"%s\", \"mac\": \"%s\", \"tpe\": \"start\", \"version\": \"%d\"}", getIp().c_str(), mac.c_str(), VERSION);
 
   String topic = String("tof/") + mac ;
   mqttClient.publish("tof", 0, false, buf);

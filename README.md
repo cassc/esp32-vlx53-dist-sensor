@@ -23,3 +23,7 @@ Reads distance from a VL53L0X sensor and sends the distance through MQTT when th
   "tpe": "dist"
 }
 ```
+
+## Reset WiFi connection
+
+Open `http://[IP]/_ac` in browser.

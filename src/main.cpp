@@ -45,6 +45,11 @@ void setup() {
 }
 
 void loop() {
+
+  // This method is required only if you need to keep AutoConnect portal open
+  // after WiFi connection success
+  portalLoop();
+
   auto d = sensor.readRangeContinuousMillimeters();
 
   if (sensor.timeoutOccurred()) {

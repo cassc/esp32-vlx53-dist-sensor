@@ -4,6 +4,8 @@
 #include <WebServer.h>
 #include <AutoConnect.h>
 
+#define VERSION 20210712
+
 ////////////////////////////////////////////////////////////////////////////////
 // Configure static IP
 #define E32_USE_STATIC_IP 0
@@ -16,5 +18,6 @@
 extern String mac;
 void setUpNetwork();
 String getIp();
+void portalLoop();
 
 #endif
