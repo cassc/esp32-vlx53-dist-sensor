@@ -11,6 +11,8 @@ static const char HELLO_PAGE[] PROGMEM = R"(
 }
 )";
 
+bool useAutoConnect = false;
+
 String getIp()
 {
     return WiFi.localIP().toString();
@@ -22,30 +24,74 @@ void startAutoConnect()
     // Allow config after AP configuration
     config.retainPortal = true;
     hello.load(HELLO_PAGE);
-#ifdef E32_USE_STATIC_IP
-    config.staip = E32_STATIC_IP;
-    config.staGateway = E32_STATIC_GATEWAY;
-    config.staNetmask = E32_STATIC_MASK;
-    config.dns1 = E32_STATIC_DNS;
-#endif
+    if (E32_USE_STATIC_IP)
+    {
+        config.staip = E32_STATIC_IP;
+        config.staGateway = E32_STATIC_GATEWAY;
+        config.staNetmask = E32_STATIC_MASK;
+        config.dns1 = E32_STATIC_DNS;
+    }
 
     config.autoReconnect = true;
 
     // portal.join({hello});
     portal.config(config);
 
-    if (portal.begin())
+    bool success = false;
+    if (USE_DEFAULT_WIFI){
+        success = portal.begin(DEFAULT_SSID, DEFAULT_PASS, DEFAULT_WIFI_TIMEOUT_MS);
+    }else{
+        success = portal.begin();
+    }
+
+    if (success)
     {
-        Serial.println("WiFi connected: " + WiFi.localIP().toString());
+        Serial.println("WiFi connected: " + getIp());
     }
 }
 
 void setUpNetwork()
 {
-
-    startAutoConnect();
     mac = WiFi.macAddress();
     mac.replace(":", "");
+
+    Serial.println("Connecting WiFi ...");
+    Serial.printf("MAC: %s\r\n", mac.c_str());
+
+    auto connected = false;
+    /* if (USE_DEFAULT_WIFI)
+    {
+        if (E32_USE_STATIC_IP)
+        {
+            WiFi.config(E32_STATIC_IP, E32_STATIC_GATEWAY, E32_STATIC_MASK, E32_STATIC_DNS);
+        }
+
+        WiFi.begin(DEFAULT_SSID, DEFAULT_PASS);
+        long timeout = DEFAULT_WIFI_TIMEOUT_MS;
+        while (WiFi.status() != WL_CONNECTED)
+        {
+            delay(500);
+            Serial.print(".");
+            timeout -= 500;
+            if (timeout < 0){
+                break;
+            }
+        }
+
+        connected = WiFi.status() == WL_CONNECTED;
+    } */
+
+    if (!connected)
+    {
+        useAutoConnect = true;
+        WiFi.disconnect();
+        startAutoConnect();
+    }
+    else
+    {
+        Serial.println("Connected to default WiFI!");
+        Serial.println("WiFi connected: " + getIp());
+    }
 }
 
 void portalLoop()

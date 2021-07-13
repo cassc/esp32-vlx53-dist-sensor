@@ -25,10 +25,7 @@ void startDistanceSensor(){
     }
   }
 
-  // Start continuous back-to-back mode (take readings as
-  // fast as possible).  To use continuous timed mode
-  // instead, provide a desired inter-measurement period in
-  // ms (e.g. sensor.startContinuous(100)).
+
   sensor.startContinuous(DIST_READ_INTERVAL_MS);
 
 }
@@ -45,9 +42,6 @@ void setup() {
 }
 
 void loop() {
-
-  // This method is required only if you need to keep AutoConnect portal open
-  // after WiFi connection success
   portalLoop();
 
   auto d = sensor.readRangeContinuousMillimeters();
