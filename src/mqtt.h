@@ -9,7 +9,7 @@ extern "C" {
 #include <AsyncMqttClient.h>
 #include "net.h"
 
-#define MQTT_HOST IPAddress(10, 0, 2, 252)
+#define MQTT_HOST IPAddress(10, 0, 0, 230)
 #define MQTT_PORT 1883
 
 void setupMqtt();

@@ -3,7 +3,7 @@
 WebServer server;
 AutoConnect portal(server);
 AutoConnectAux hello;
-AutoConnectUpdate update("10.0.0.3", 8020);
+// AutoConnectUpdate update("10.0.0.3", 8020);
 AutoConnectConfig config("make_tof", "12345678");
 
 static const char HELLO_PAGE[] PROGMEM = R"(

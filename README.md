@@ -44,3 +44,18 @@ You can also configure static IP at the same time:
 ```bash
 curl -v --data-binary "SSID=MAKE&Passphrase=wemakedigital&sip=10.0.2.133&gw=10.0.2.1&nm=255.255.255.0&ns1=10.0.2.1&ns2=8.8.8.8&apply=Apply" http://172.217.28.1/_ac/connect
 ```
+
+
+# Build and configure WiFi
+
+
+```bash
+# gen qrcode for labeling
+python3 gen-qrcode.py
+
+# erase and reset
+make erase upload
+
+# configure wifi
+python3 config-wifi.py --ssid playscape --password makeplayscape
+```
