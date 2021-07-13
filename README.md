@@ -27,3 +27,20 @@ Reads distance from a VL53L0X sensor and sends the distance through MQTT when th
 ## Reset WiFi connection
 
 Open `http://[IP]/_ac` in browser.
+
+
+## Configure WiFi without manually typing
+First connect to ESP AP using PC, then send the following command, replacing
+`SSID` and `PASSWORD` with the target WiFi credentials:
+
+```bash
+curl -v --data-binary "SSID=[SSID]&Passphrase=[PASSWORD]&dhcp=en&apply=Apply"  http://172.217.28.1/_ac/connect
+# Example
+curl -v --data-binary "SSID=MAKE&Passphrase=wemakedigital&dhcp=en&apply=Apply"  http://172.217.28.1/_ac/connect
+```
+
+You can also configure static IP at the same time:
+
+```bash
+curl -v --data-binary "SSID=MAKE&Passphrase=wemakedigital&sip=10.0.2.133&gw=10.0.2.1&nm=255.255.255.0&ns1=10.0.2.1&ns2=8.8.8.8&apply=Apply" http://172.217.28.1/_ac/connect
+```

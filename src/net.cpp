@@ -1,7 +1,9 @@
 #include "net.h"
+
 WebServer server;
 AutoConnect portal(server);
 AutoConnectAux hello;
+AutoConnectUpdate update("10.0.0.3", 8020);
 AutoConnectConfig config("make_tof", "12345678");
 
 static const char HELLO_PAGE[] PROGMEM = R"(
@@ -11,8 +13,6 @@ static const char HELLO_PAGE[] PROGMEM = R"(
 }
 )";
 
-bool useAutoConnect = false;
-
 String getIp()
 {
     return WiFi.localIP().toString();
@@ -20,9 +20,10 @@ String getIp()
 
 void startAutoConnect()
 {
-    config.ota = AC_OTA_BUILTIN;
-    // Allow config after AP configuration
+    config.ota = AC_OTA_BUILTIN; // Enable OTA through local browser
     config.retainPortal = true;
+    config.autoReconnect = true;
+    config.autoSave = AC_SAVECREDENTIAL_AUTO;
     hello.load(HELLO_PAGE);
     if (E32_USE_STATIC_IP)
     {
@@ -32,21 +33,17 @@ void startAutoConnect()
         config.dns1 = E32_STATIC_DNS;
     }
 
-    config.autoReconnect = true;
-
     // portal.join({hello});
     portal.config(config);
 
-    bool success = false;
-    if (USE_DEFAULT_WIFI){
-        success = portal.begin(DEFAULT_SSID, DEFAULT_PASS, DEFAULT_WIFI_TIMEOUT_MS);
-    }else{
-        success = portal.begin();
-    }
-
-    if (success)
+    if (portal.begin())
     {
         Serial.println("WiFi connected: " + getIp());
+        // update.attach(portal); // OTA through AutoConnect server
+    }
+    else
+    {
+        Serial.println("FATAL: AutoConnect failed!!");
     }
 }
 
@@ -57,41 +54,9 @@ void setUpNetwork()
 
     Serial.println("Connecting WiFi ...");
     Serial.printf("MAC: %s\r\n", mac.c_str());
+    Serial.printf("VERSION: %d\r\n", VERSION);
 
-    auto connected = false;
-    /* if (USE_DEFAULT_WIFI)
-    {
-        if (E32_USE_STATIC_IP)
-        {
-            WiFi.config(E32_STATIC_IP, E32_STATIC_GATEWAY, E32_STATIC_MASK, E32_STATIC_DNS);
-        }
-
-        WiFi.begin(DEFAULT_SSID, DEFAULT_PASS);
-        long timeout = DEFAULT_WIFI_TIMEOUT_MS;
-        while (WiFi.status() != WL_CONNECTED)
-        {
-            delay(500);
-            Serial.print(".");
-            timeout -= 500;
-            if (timeout < 0){
-                break;
-            }
-        }
-
-        connected = WiFi.status() == WL_CONNECTED;
-    } */
-
-    if (!connected)
-    {
-        useAutoConnect = true;
-        WiFi.disconnect();
-        startAutoConnect();
-    }
-    else
-    {
-        Serial.println("Connected to default WiFI!");
-        Serial.println("WiFi connected: " + getIp());
-    }
+    startAutoConnect();
 }
 
 void portalLoop()
