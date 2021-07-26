@@ -1,7 +1,7 @@
 # Distance sensor
 
-
 Reads distance from a VL53L0X sensor and sends the distance through MQTT when the change of measured distance is greater than 10mm.
+Used in Cabinet of Curiousities and Sensor Photo Booth
 
 ## MQTT topic and payloads
 
