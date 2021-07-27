@@ -49,7 +49,7 @@ curl -v --data-binary "SSID=MAKE&Passphrase=wemakedigital&sip=10.0.2.133&gw=10.0
 
 
 ```bash
-# gen qrcode for labeling
+# gen qrcode for labeling, label size: 24x36mm
 python3 gen-qrcode.py
 
 # erase and reset
