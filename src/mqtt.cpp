@@ -9,7 +9,7 @@ TimerHandle_t wifiReconnectTimer;
 
 void connectToMqtt()
 {
-  Serial.println("Connecting to MQTT...");
+  Serial.println(String("Connecting to MQTT broker ") + MQTT_HOST.toString() + " ...");
   mqttClient.connect();
 }
 
