@@ -14,23 +14,34 @@ const int DIST_READ_INTERVAL_MS = 50;
 
 char mqMsgBuf[128];
 
-void startDistanceSensor(){
+void startDistanceSensor()
+{
   Wire.begin(GPIO_SDA, GPIO_SCL);
 
   sensor.setTimeout(500);
 
-  if (!sensor.init()) {
+  if (!sensor.init())
+  {
     Serial.println("Failed to detect and initialize sensor!");
-    while (1) {
+    while (1)
+    {
     }
   }
 
+  // Configuration to increase max measure range
+  // increase range, lower accuracy
+  sensor.setSignalRateLimit(0.1);
+  // increase range
+  sensor.setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 18);
+  sensor.setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 14);
+  // increase measurement speed
+  sensor.setMeasurementTimingBudget(20000);
 
   sensor.startContinuous(DIST_READ_INTERVAL_MS);
-
 }
 
-void setup() {
+void setup()
+{
   delay(1000);
   Serial.begin(115200);
 
@@ -41,21 +52,23 @@ void setup() {
   setupMqtt();
 }
 
-void loop() {
+void loop()
+{
   portalLoop();
 
   auto d = sensor.readRangeContinuousMillimeters();
 
-  if (sensor.timeoutOccurred()) {
+  if (sensor.timeoutOccurred())
+  {
     Serial.println("TIMEOUT");
     return;
   }
 
-  if (abs(d - dist) > 10){
+  if (abs(d - dist) > 10)
+  {
     sprintf(mqMsgBuf, "{\"dist\": %d, \"tpe\": \"dist\"}", d);
     publisthMqtt(mqMsgBuf);
   }
 
   dist = d;
-
 }
