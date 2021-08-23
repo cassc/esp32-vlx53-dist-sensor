@@ -1,15 +1,17 @@
-#include <VL53L0X.h>
+#include <VL53L1X.h>
 #include <Wire.h>
 
 #include "mqtt.h"
 String mac;
 
 // PINs for the distance sensor
-const int GPIO_SDA = 5;
 const int GPIO_SCL = 17;
+const int GPIO_SDA = 5;
+
+const bool ENABLE_NET = false;
 
 uint16_t dist = 0;
-VL53L0X sensor;
+VL53L1X sensor;
 const int DIST_READ_INTERVAL_MS = 50;
 
 char mqMsgBuf[128];
@@ -20,23 +22,21 @@ void startDistanceSensor()
 
   sensor.setTimeout(500);
 
-  if (!sensor.init())
+  while (!sensor.init())
   {
     Serial.println("Failed to detect and initialize sensor!");
-    while (1)
-    {
-    }
+    delay(500);
   }
 
   // Configuration to increase max measure range
   // increase range, lower accuracy
-  sensor.setSignalRateLimit(0.1);
+/*   sensor.setSignalRateLimit(0.1);
   // increase range
   sensor.setVcselPulsePeriod(VL53L0X::VcselPeriodPreRange, 18);
   sensor.setVcselPulsePeriod(VL53L0X::VcselPeriodFinalRange, 14);
   // increase measurement speed
   sensor.setMeasurementTimingBudget(20000);
-
+ */
   sensor.startContinuous(DIST_READ_INTERVAL_MS);
 }
 
@@ -47,14 +47,18 @@ void setup()
 
   startDistanceSensor();
 
-  setUpNetwork();
+  if (ENABLE_NET){
+    setUpNetwork();
+    setupMqtt();
+  }
 
-  setupMqtt();
 }
 
 void loop()
 {
-  portalLoop();
+  if (ENABLE_NET){
+    portalLoop();
+  }
 
   auto d = sensor.readRangeContinuousMillimeters();
 
@@ -64,11 +68,14 @@ void loop()
     return;
   }
 
-  if (abs(d - dist) > 10)
+  if (abs(d-dist) > 5)
   {
     sprintf(mqMsgBuf, "{\"dist\": %d, \"tpe\": \"dist\"}", d);
-    publisthMqtt(mqMsgBuf);
+    Serial.println(mqMsgBuf);
+    if (ENABLE_NET){
+      publisthMqtt(mqMsgBuf);
+    }
+    dist = d;
   }
 
-  dist = d;
 }
