@@ -84,3 +84,7 @@ void publisthMqtt(char *payload){
   String topic = String("tof/") + mac ;
   mqttClient.publish(topic.c_str(), 0, false, payload);
 }
+
+bool isMqttConnected(){
+  return mqttClient.connected();
+}
