@@ -4,7 +4,7 @@
 #include <WebServer.h>
 #include <AutoConnect.h>
 
-#define VERSION 20210811
+#define VERSION 20210902
 
 ////////////////////////////////////////////////////////////////////////////////
 // Configure static IP
@@ -27,6 +27,8 @@ void portalLoop();
 
 int sendUDP(const char* msg);
 void setMinDist(long d);
+// Handle UDP message, returns 0 if no message received
+int handleUDPReply();
 
 
 #endif

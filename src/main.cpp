@@ -14,7 +14,7 @@
 #include "mqtt.h"
 String mac;
 
-const long PING_MILLIS = 10000; 
+const long PING_MILLIS = 10000;
 
 // False, use UDP; true: use MQTT for sending sensor state
 const byte USE_MQTT = false;
@@ -39,6 +39,7 @@ VL53L1X sensor;
 #endif
 
 unsigned long lastSent = 0;
+unsigned long udpPongTs = 0;
 
 const int DIST_READ_INTERVAL_MS = 50;
 
@@ -115,8 +116,19 @@ void sendNetMsg(const char *msg)
   }
   lastSent = millis();
 
-  // Turn off NET led if network is ok
-  digitalWrite(LED_MQ, !success);
+  Serial.println(String("Send Net msg returns: ") + success);
+
+  // Turn on MQ led if sent success, for MQTT only
+  // For UDP, need to use reply to determine if sent success
+  if (!success)
+  {
+    digitalWrite(LED_MQ, 0);
+    return;
+  }
+  if (USE_MQTT)
+  {
+    digitalWrite(LED_MQ, 1);
+  }
 }
 
 // Send ping every few secs
@@ -135,12 +147,24 @@ void loop()
 {
 
   byte hasWifi = WiFi.isConnected();
-  byte hasMqtt = hasWifi && isMqttConnected();
+  if (USE_MQTT)
+  {
+    byte hasMqtt = hasWifi && isMqttConnected();
+    digitalWrite(LED_MQ, hasMqtt);
+  }
 
   digitalWrite(LED_NET, hasWifi);
-  digitalWrite(LED_MQ, hasMqtt);
 
   portalLoop();
+
+  if (!USE_MQTT)
+  {
+    if (hasWifi && handleUDPReply())
+    {
+      udpPongTs = millis();
+    }
+    digitalWrite(LED_MQ, millis() - udpPongTs < 3000);
+  }
 
   auto d = sensor.readRangeContinuousMillimeters();
 
@@ -153,7 +177,7 @@ void loop()
   if (d != dist)
   {
     digitalWrite(LED_DATA, HIGH);
-    if (hasMqtt && (abs(d - dist) > min_dist))
+    if (abs(d - dist) > min_dist)
     {
       sprintf(mqMsgBuf, "{\"dist\": %d, \"tpe\": \"dist\"}", d);
       sendNetMsg(mqMsgBuf);

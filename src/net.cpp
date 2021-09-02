@@ -9,8 +9,6 @@ AutoConnectConfig config("make_tof", "12345678");
 WiFiUDP udp;
 char udpInBuf[64];
 
-
-
 static const char HELLO_PAGE[] PROGMEM = R"(
 { "title": "Hello world", "uri": "/", "menu": true, "element": [
     { "name": "caption", "type": "ACText", "value": "<h2>Hello, world</h2>",  "style": "text-align:center;color:#2f4f4f;padding:10px;" },
@@ -69,32 +67,44 @@ void portalLoop()
     portal.handleClient();
 }
 
-int sendUDP(const char* msg){
-    Serial.printf("SEND: %s\r\n", msg);
-    udp.beginPacket(UDP_HOST, UDP_PORT);
-    udp.println(msg);
-    return  udp.endPacket();
+int sendUDP(const char *msg)
+{
+    Serial.printf("UDP Send: %s\r\n", msg);
+    if (udp.beginPacket(UDP_HOST, UDP_PORT) && udp.println(msg))
+    {
+        return udp.endPacket();
+    }
+    return 0;
 }
 
-int handleUDPReply(){
-    if(!udp.parsePacket()){
-        return;
+int handleUDPReply()
+{
+    if (!udp.parsePacket())
+    {
+        return 0;
     }
 
     auto len = udp.read(udpInBuf, 64);
-    if (len > 0){
+    if (len > 0)
+    {
         udpInBuf[len] = '\0';
     }
 
     auto dist = String(udpInBuf).toInt();
     setMinDist(dist);
+
+    return 1;
 }
 
-void setMinDist(long dist){
-  Serial.println(String("Setting min dist: ") + dist);
-  if (dist){
-    min_dist = dist;
-  } else{
-    Serial.println(String("Ignore min dist setting: ") + dist);
-  }
+void setMinDist(long dist)
+{
+    Serial.println(String("Setting min dist: ") + dist);
+    if (dist)
+    {
+        min_dist = dist;
+    }
+    else
+    {
+        Serial.println(String("Ignore min dist setting: ") + dist);
+    }
 }

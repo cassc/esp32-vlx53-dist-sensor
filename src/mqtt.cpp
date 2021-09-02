@@ -45,7 +45,7 @@ void onMqttUnsubscribe(uint16_t packetId)
 {
 }
 
-void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
+void onMqttMessage(char *topicBuf, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
 {
   auto topic = String(topicBuf);
   if (topic != tofInCmdTopic){
