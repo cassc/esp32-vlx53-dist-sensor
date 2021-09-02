@@ -91,9 +91,9 @@ void setup()
 
   setupPins();
 
-  startDistanceSensor();
-
   setUpNetwork();
+
+  startDistanceSensor();
 
   if (USE_MQTT)
   {
