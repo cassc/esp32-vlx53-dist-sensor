@@ -15,9 +15,18 @@
 #define E32_STATIC_DNS IPAddress(10,0,2,1)
 ////////////////////////////////////////////////////////////////////////////////
 
+
+#define UDP_PORT 5252
+#define UDP_HOST "10.0.0.231"
+
 extern String mac;
+extern long min_dist;
 void setUpNetwork();
 String getIp();
 void portalLoop();
+
+int sendUDP(const char* msg);
+void setMinDist(long d);
+
 
 #endif

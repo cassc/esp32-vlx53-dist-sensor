@@ -5,7 +5,7 @@
 AsyncMqttClient mqttClient;
 TimerHandle_t mqttReconnectTimer;
 TimerHandle_t wifiReconnectTimer;
-
+String tofInCmdTopic;
 
 void connectToMqtt()
 {
@@ -19,9 +19,13 @@ void onMqttConnect(bool sessionPresent)
   char buf[128];
   sprintf(buf, "{\"ip\": \"%s\", \"mac\": \"%s\", \"tpe\": \"start\", \"version\": \"%d\"}", getIp().c_str(), mac.c_str(), VERSION);
 
+
   String topic = String("tof/") + mac ;
   mqttClient.publish("tof", 0, false, buf);
   publisthMqtt(buf);
+
+  tofInCmdTopic = String("fot/") + mac + "/cmd";
+  mqttClient.subscribe(tofInCmdTopic.c_str(), 1);
 }
 
 void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
@@ -43,21 +47,20 @@ void onMqttUnsubscribe(uint16_t packetId)
 
 void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total)
 {
-  Serial.println("Publish received.");
-  Serial.print("  topic: ");
-  Serial.println(topic);
-  Serial.print("  qos: ");
-  Serial.println(properties.qos);
-  Serial.print("  dup: ");
-  Serial.println(properties.dup);
-  Serial.print("  retain: ");
-  Serial.println(properties.retain);
-  Serial.print("  len: ");
-  Serial.println(len);
-  Serial.print("  index: ");
-  Serial.println(index);
-  Serial.print("  total: ");
-  Serial.println(total);
+  auto topic = String(topicBuf);
+  if (topic != tofInCmdTopic){
+    return;
+  }
+
+  char new_payload[total + 1];
+  new_payload[total] = '\0';
+  strncpy(new_payload, payload, len);
+
+  auto s = String(new_payload);
+
+  auto dist = s.toInt();
+  setMinDist(dist);
+
 }
 
 void onMqttPublish(uint16_t packetId)
@@ -80,9 +83,9 @@ void setupMqtt()
   connectToMqtt();
 }
 
-void publisthMqtt(char *payload){
+int publisthMqtt(const char *payload){
   String topic = String("tof/") + mac ;
-  mqttClient.publish(topic.c_str(), 0, false, payload);
+  return mqttClient.publish(topic.c_str(), 0, false, payload);
 }
 
 bool isMqttConnected(){

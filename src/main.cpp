@@ -14,8 +14,13 @@
 #include "mqtt.h"
 String mac;
 
-// Minimum distance change (mm) to send data by MQTT
-const int MIN_DIST_CHANGE_TO_SEND_DATA = 1;
+const long PING_MILLIS = 10000; 
+
+// False, use UDP; true: use MQTT for sending sensor state
+const byte USE_MQTT = false;
+
+// Minimum distance change (mm) to send data out
+long min_dist = 5;
 
 // PINs for the distance sensor
 const int GPIO_SDA = 5;
@@ -23,7 +28,7 @@ const int GPIO_SCL = 17;
 
 // PINs for LEDs
 const int LED_NET = 22;
-const int LED_MQ = 19;
+const int LED_MQ = 19; // MQTT or UDP LED
 const int LED_DATA = 23;
 
 uint16_t dist = 0;
@@ -32,6 +37,8 @@ VL53L0X sensor;
 #else
 VL53L1X sensor;
 #endif
+
+unsigned long lastSent = 0;
 
 const int DIST_READ_INTERVAL_MS = 50;
 
@@ -87,7 +94,41 @@ void setup()
 
   setUpNetwork();
 
-  setupMqtt();
+  if (USE_MQTT)
+  {
+    setupMqtt();
+  }
+}
+
+// Send message through MQTT or UDP
+// Update network LED status
+void sendNetMsg(const char *msg)
+{
+  int success = 0;
+  if (USE_MQTT)
+  {
+    success = publisthMqtt(msg);
+  }
+  else
+  {
+    success = sendUDP(msg);
+  }
+  lastSent = millis();
+
+  // Turn off NET led if network is ok
+  digitalWrite(LED_MQ, !success);
+}
+
+// Send ping every few secs
+void maybePing()
+{
+
+  if (millis() - lastSent < PING_MILLIS)
+  {
+    return;
+  }
+
+  sendNetMsg(mac.c_str());
 }
 
 void loop()
@@ -112,10 +153,10 @@ void loop()
   if (d != dist)
   {
     digitalWrite(LED_DATA, HIGH);
-    if (hasMqtt && (abs(d - dist) > MIN_DIST_CHANGE_TO_SEND_DATA))
+    if (hasMqtt && (abs(d - dist) > min_dist))
     {
       sprintf(mqMsgBuf, "{\"dist\": %d, \"tpe\": \"dist\"}", d);
-      publisthMqtt(mqMsgBuf);
+      sendNetMsg(mqMsgBuf);
     }
   }
   else
@@ -124,4 +165,6 @@ void loop()
   }
 
   dist = d;
+
+  maybePing();
 }
