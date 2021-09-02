@@ -179,7 +179,7 @@ void loop()
     digitalWrite(LED_DATA, HIGH);
     if (abs(d - dist) > min_dist)
     {
-      sprintf(mqMsgBuf, "{\"dist\": %d, \"tpe\": \"dist\"}", d);
+      sprintf(mqMsgBuf, "{\"dist\": %d, \"tpe\": \"dist\", \"mac\": \"%s\"}", d, mac.c_str());
       sendNetMsg(mqMsgBuf);
     }
   }
