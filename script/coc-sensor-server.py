@@ -1,5 +1,15 @@
 # WLED json doc:
 # https://kno.wled.ge/interfaces/json-api/
+#
+# Data is valid if
+# - the distance is smaller than P_DIST_MAX
+# - or the current distance is less than P_DIST_MIN and time change from previous data point is larger than P_TS_MIN ms and previous distance is larger than P_DIST_MAX
+# Person detected if
+# - latest distance is valid and
+# - latest distance is smaller than P_DIST_MAX
+
+
+from concurrent.futures import ThreadPoolExecutor
 
 import traceback
 import socket
@@ -12,9 +22,13 @@ import argparse
 import logging
 
 
-logging.basicConfig(filename='wled.log', filemode='a', format='%(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.basicConfig(filename='wled.log', filemode='a', format='%(asctime)s %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+executor = ThreadPoolExecutor(max_workers=10)
 
 
+P_DIST_MAX = 1000
+P_DIST_MIN = 120
+P_TS_MIN = 1
 UDP_IP = "0.0.0.0"
 UDP_PORT = 5252
 
@@ -47,28 +61,27 @@ wledToSensor = {
 
 }
 
+def run_in_thread(func, *args):
+    t = threading.Thread(target=func, args=args)
+    t.start()
 
 # overrides default config
 configByIp = {
     '10.0.0.68': {
-        # mininum history distance, smaller value produces higher noise
-        'minDist': 100,
-        # increase this to reduce noise
-        'minHistDataCount': 8,
-        # enable debugging for this sensor
-        # 'debug': True,
+        'p_dist_min': 150,
+        'p_ts_min' : 1.2,
+        'debug': True,
     },
     '10.0.0.75': {
-        'minDist': 100,
-        'minHistDataCount': 5,
+        'p_dist_min': 150,
+        'p_ts_min' : 1.2,
     },
-    '10.0.0.69': {
-        'minHistDataCount': 5,
+    '10.0.0.95': {
+        'p_dist_min': 150,
     },
-    '10.0.0.78': {
-        'minDist': 100,
-        'minHistDataCount': 5,
-    }
+    '10.0.0.76': {
+        'p_dist_min': 150,
+    },    
 }
 
 def getConfigByIp(ip, key, default=None):
@@ -136,10 +149,8 @@ DIST = {}
 
 def popOld(mac):
     xd = DIST.get(mac, [])
-    ip = sensorToWled[mac]
-    histDuration = getConfigByIp(ip, 'histDuration', 0.2)
-    now = time.time()
-    xd = [d for d in xd if now - d['ts'] < histDuration]
+    while len(xd) > 5:
+        xd.pop(0)
     DIST[mac] = xd
 
 def addDist(mac, dist):
@@ -148,29 +159,46 @@ def addDist(mac, dist):
     xd.append(data)
     DIST[mac] = xd
 
+def getCurrentDistIfValid(mac):
+    ip = sensorToWled[mac]
+    debug = getConfigByIp(ip, 'debug', False)
+    p_ts_min = getConfigByIp(ip, 'p_ts_min', P_TS_MIN)
+    p_dist_max = getConfigByIp(ip, 'p_dist_max', P_DIST_MAX)
+    p_dist_min = getConfigByIp(ip, 'p_dist_min', P_DIST_MIN)
+
+    xd = DIST.get(mac, [])
+    if len(xd) < 1:
+        return None
+    dist = xd[-1]['dist']
+
+    if debug:
+        logging.info(f'{ip} {mac} {dist}')
+
+    if dist < p_dist_max and dist > p_dist_min:
+        return dist
+
+    if len(xd) < 2:
+        return None
+
+    tsChange = xd[-1]['ts'] - xd[-2]['ts']
+    prevDist = xd[-2]['dist']
+
+    if debug:
+        logging.info(f'{ip} {mac} {dist} {tsChange}')
+
+    if dist < P_DIST_MIN and tsChange > p_ts_min and prevDist < p_dist_max:
+        return dist
+
+    return None
 
 def maybeSwitchLedOn(mac):
     ip = sensorToWled[mac]
-    xd = DIST.get(mac, [])
-    dists = [d['dist'] for d in xd]
-    currDist = xd[-1]['dist']
-    minDist = min(dists)
-    maxDist = max(dists)
-    # for person standing in range
-    onByDist = (currDist > 200 and currDist < 1000)
-    # for person standing still close
-    minHistDataCount = getConfigByIp(ip, 'minHistDataCount', 2)
+    dist = getCurrentDistIfValid(mac)
+    state = dist is not None
+
     debug = getConfigByIp(ip, 'debug', False)
-    hasMinDataCount = len(dists) > minHistDataCount
-    onBySmallDist = minDist > getConfigByIp(ip, 'minDist', 80) and maxDist < 1000 and hasMinDataCount
-    distChange = abs(currDist - minDist)
-    # for person passing by
-    onByDistChange =  distChange > 100
-    state = onByDist or onByDistChange or onBySmallDist
-
-    if state or debug:
-        logging.info(f'{ip} {"ON" if state else "OFF"} dist: {currDist} change: {distChange} ({minDist}, {maxDist}) OnByDist: {onByDist} OnByDistChange: {onByDistChange} onBySmallDist: {onBySmallDist}')
-
+    if state and debug:
+        logging.info(f'{ip} {mac} {"ON" if state else "OFF"} {dist}')
     switch(ip, state)
 
 
@@ -179,23 +207,16 @@ def handleDistReq(req):
     dist = req['dist']
     ip = sensorToWled[mac]
     debug = getConfigByIp(ip, 'debug', False)
-    valid = dist < 2000
 
     if debug:
-        logging.info(f'{ip} DIST {"VALID" if valid else "INVALID"} {dist}')
+        logging.info(f'{ip} {mac} dist {dist}')
 
-    if valid:
-        # print(f'{mac} {dist}')
-        addDist(mac, dist)
-        popOld(mac)
-        maybeSwitchLedOn(mac)
-    else:
-        # clear history data if got invalid reading
-        DIST[mac] = []
-        switch(ip, False)
+    addDist(mac, dist)
+    popOld(mac)
+    maybeSwitchLedOn(mac)
 
-
-
+def reply(sock, addr):
+    sock.sendto(''.encode(), addr)
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
@@ -210,7 +231,7 @@ if __name__ == '__main__':
                 logging.warning(f'Decode json failed: {msg}')
                 continue
             if 'tpe' in req and req['tpe'] == 'dist' and req['mac'] in sensorToWled:
-                handleDistReq(req)
+                executor.submit(handleDistReq, req)
                 continue
 
             logging.debug(f"IGNORE {req} FROM {addr}")
@@ -218,4 +239,4 @@ if __name__ == '__main__':
             traceback.print_exc(file=sys.stdout)
             logging.exception('Main loop error')
         finally:
-            sent = sock.sendto(''.encode(), addr)
+            executor.submit(reply, sock, addr)
