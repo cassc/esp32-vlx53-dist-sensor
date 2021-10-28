@@ -4,7 +4,7 @@
 #include <WebServer.h>
 #include <AutoConnect.h>
 
-#define VERSION 20210902
+#define VERSION 20211028
 
 ////////////////////////////////////////////////////////////////////////////////
 // Configure static IP

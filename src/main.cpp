@@ -1,4 +1,4 @@
-// Set to 0 to use VL53L0 sensor
+// Set to 0 to use VL53L1 sensor
 #define USE_SENSOR_L0 1
 
 // Set to 1 to increase L0 sensor max detection distance
@@ -54,7 +54,12 @@ void startDistanceSensor()
   while (!sensor.init())
   {
     Serial.println("Failed to detect and initialize sensor!");
-    Serial.println("Please check you are using VLX53L0X!");
+    #if USE_SENSOR_L0
+    Serial.println("Please check you are using L0 sensor ");
+    #else
+    Serial.println("Please check you are using L1 sensor ");
+    #endif
+
     delay(2000);
   }
 
@@ -118,17 +123,7 @@ void sendNetMsg(const char *msg)
 
   Serial.println(String("Send Net msg returns: ") + success);
 
-  // Turn on MQ led if sent success, for MQTT only
-  // For UDP, need to use reply to determine if sent success
-  if (!success)
-  {
-    digitalWrite(LED_MQ, 0);
-    return;
-  }
-  if (USE_MQTT)
-  {
-    digitalWrite(LED_MQ, 1);
-  }
+  digitalWrite(LED_MQ, success ? 1 : 0);
 }
 
 // Send ping every few secs
