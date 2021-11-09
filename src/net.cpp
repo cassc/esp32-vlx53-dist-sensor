@@ -24,10 +24,13 @@ String getIp()
 void startAutoConnect()
 {
     config.ota = AC_OTA_BUILTIN; // Enable OTA through local browser
-    config.retainPortal = true;
+    config.retainPortal = false;
     config.autoReconnect = true;
     config.autoSave = AC_SAVECREDENTIAL_AUTO;
-    hello.load(HELLO_PAGE);
+    config.portalTimeout = 30000;
+    config.autoReset = false;    
+    config.autoRise = true;
+    // hello.load(HELLO_PAGE);
     if (E32_USE_STATIC_IP)
     {
         config.staip = E32_STATIC_IP;
@@ -46,7 +49,8 @@ void startAutoConnect()
     }
     else
     {
-        Serial.println("FATAL: AutoConnect failed!!");
+        Serial.println("FATAL: AutoConnect failed, restaring!");
+        ESP.restart();
     }
 }
 

@@ -54,11 +54,11 @@ void startDistanceSensor()
   while (!sensor.init())
   {
     Serial.println("Failed to detect and initialize sensor!");
-    #if USE_SENSOR_L0
+#if USE_SENSOR_L0
     Serial.println("Please check you are using L0 sensor ");
-    #else
+#else
     Serial.println("Please check you are using L1 sensor ");
-    #endif
+#endif
 
     delay(2000);
   }
@@ -135,7 +135,10 @@ void maybePing()
     return;
   }
 
-  sendNetMsg(mac.c_str());
+  auto rssi = WiFi.RSSI();
+
+  sprintf(mqMsgBuf, "{\"tpe\": \"ping\", \"mac\": \"%s\", \"rssi\": %d}", mac.c_str(), rssi);
+  sendNetMsg(mqMsgBuf);
 }
 
 void loop()
@@ -172,9 +175,10 @@ void loop()
   if (d != dist)
   {
     digitalWrite(LED_DATA, HIGH);
-    if (abs(d - dist) > min_dist)
+    if (abs(d - dist) > min_dist && millis() - lastSent > 20)
     {
-      sprintf(mqMsgBuf, "{\"dist\": %d, \"tpe\": \"dist\", \"mac\": \"%s\"}", d, mac.c_str());
+      auto rssi = WiFi.RSSI();
+      sprintf(mqMsgBuf, "{\"dist\": %d, \"tpe\": \"dist\", \"mac\": \"%s\", \"rssi\": %d}", d, mac.c_str(), rssi);
       sendNetMsg(mqMsgBuf);
     }
   }
