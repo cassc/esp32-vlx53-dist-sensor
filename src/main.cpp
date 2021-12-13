@@ -11,13 +11,11 @@
 #endif
 #include <Wire.h>
 
-#include "mqtt.h"
+#include "net.h"
+
 String mac;
 
 const long PING_MILLIS = 10000;
-
-// False, use UDP; true: use MQTT for sending sensor state
-const byte USE_MQTT = false;
 
 // Minimum distance change (mm) to send data out
 long min_dist = 5;
@@ -28,7 +26,7 @@ const int GPIO_SCL = 17;
 
 // PINs for LEDs
 const int LED_NET = 22;
-const int LED_MQ = 19; // MQTT or UDP LED
+const int LED_MQ = 19; // UDP LED
 const int LED_DATA = 23;
 
 uint16_t dist = 0;
@@ -100,25 +98,15 @@ void setup()
 
   startDistanceSensor();
 
-  if (USE_MQTT)
-  {
-    setupMqtt();
-  }
+
 }
 
 // Send message through MQTT or UDP
 // Update network LED status
 void sendNetMsg(const char *msg)
 {
-  int success = 0;
-  if (USE_MQTT)
-  {
-    success = publisthMqtt(msg);
-  }
-  else
-  {
-    success = sendUDP(msg);
-  }
+  auto success = sendUDP(msg);
+ 
   lastSent = millis();
 
   Serial.println(String("Send Net msg returns: ") + success);
@@ -145,24 +133,14 @@ void loop()
 {
 
   byte hasWifi = WiFi.isConnected();
-  if (USE_MQTT)
-  {
-    byte hasMqtt = hasWifi && isMqttConnected();
-    digitalWrite(LED_MQ, hasMqtt);
-  }
-
+ 
   digitalWrite(LED_NET, hasWifi);
 
-  portalLoop();
-
-  if (!USE_MQTT)
+  if (hasWifi && handleUDPReply())
   {
-    if (hasWifi && handleUDPReply())
-    {
-      udpPongTs = millis();
-    }
-    digitalWrite(LED_MQ, millis() - udpPongTs < 3000);
+    udpPongTs = millis();
   }
+  digitalWrite(LED_MQ, millis() - udpPongTs < 3000);
 
   auto d = sensor.readRangeContinuousMillimeters();
 

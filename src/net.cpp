@@ -1,56 +1,29 @@
 #include "net.h"
 
-WebServer server;
-AutoConnect portal(server);
-AutoConnectAux hello;
-// AutoConnectUpdate update("10.0.0.3", 8020);
-AutoConnectConfig config("make_tof", "12345678");
 
 WiFiUDP udp;
 char udpInBuf[64];
 
-static const char HELLO_PAGE[] PROGMEM = R"(
-{ "title": "Hello world", "uri": "/", "menu": true, "element": [
-    { "name": "caption", "type": "ACText", "value": "<h2>Hello, world</h2>",  "style": "text-align:center;color:#2f4f4f;padding:10px;" },
-    { "name": "content", "type": "ACText", "value": "In this page, place the custom web page handled by the Sketch application." } ]
-}
-)";
 
 String getIp()
 {
     return WiFi.localIP().toString();
 }
 
-void startAutoConnect()
-{
-    config.ota = AC_OTA_BUILTIN; // Enable OTA through local browser
-    config.retainPortal = false;
-    config.autoReconnect = true;
-    config.autoSave = AC_SAVECREDENTIAL_AUTO;
-    config.portalTimeout = 30000;
-    config.autoReset = false;    
-    config.autoRise = true;
-    // hello.load(HELLO_PAGE);
-    if (E32_USE_STATIC_IP)
-    {
-        config.staip = E32_STATIC_IP;
-        config.staGateway = E32_STATIC_GATEWAY;
-        config.staNetmask = E32_STATIC_MASK;
-        config.dns1 = E32_STATIC_DNS;
-    }
 
-    // portal.join({hello});
-    portal.config(config);
+void startWifi(){
+    WiFi.mode(WIFI_AP_STA);
+    WiFi.begin("cocwifi", "M@k3Pl@ysc@p3");
 
-    if (portal.begin())
-    {
-        Serial.println("WiFi connected: " + getIp());
-        // update.attach(portal); // OTA through AutoConnect server
-    }
-    else
-    {
-        Serial.println("FATAL: AutoConnect failed, restaring!");
+    auto startTs = millis();
+    auto connTime = 0;
+    while (WiFi.status() != WL_CONNECTED) {
+      Serial.print('.');
+      delay(1000);
+      if (millis() - startTs > 60000){
+        Serial.println("Failed to connect to wifi, restart now");
         ESP.restart();
+      }
     }
 }
 
@@ -63,13 +36,11 @@ void setUpNetwork()
     Serial.printf("MAC: %s\r\n", mac.c_str());
     Serial.printf("VERSION: %d\r\n", VERSION);
 
-    startAutoConnect();
+    // startAutoConnect();
+    startWifi();
 }
 
-void portalLoop()
-{
-    portal.handleClient();
-}
+
 
 int sendUDP(const char *msg)
 {
