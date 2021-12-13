@@ -97,16 +97,14 @@ void setup()
   setUpNetwork();
 
   startDistanceSensor();
-
-
 }
 
-// Send message through MQTT or UDP
+// Send message through UDP
 // Update network LED status
 void sendNetMsg(const char *msg)
 {
   auto success = sendUDP(msg);
- 
+
   lastSent = millis();
 
   Serial.println(String("Send Net msg returns: ") + success);
@@ -129,11 +127,33 @@ void maybePing()
   sendNetMsg(mqMsgBuf);
 }
 
+unsigned long noWifiStart = 0;
+
 void loop()
 {
+  auto rssi = WiFi.RSSI();
+  auto hasWifi = (rssi != 0);
 
-  byte hasWifi = WiFi.isConnected();
- 
+  if (hasWifi)
+  {
+    noWifiStart = 0;
+  }
+  else
+  {
+    if (noWifiStart == 0)
+    {
+      noWifiStart = millis();
+    }
+    else
+    {
+      if (millis() - noWifiStart > 10000)
+      {
+        Serial.println("Wifi disconnected, restarting");
+        ESP.restart();
+      }
+    }
+  }
+
   digitalWrite(LED_NET, hasWifi);
 
   if (hasWifi && handleUDPReply())
@@ -155,7 +175,6 @@ void loop()
     digitalWrite(LED_DATA, HIGH);
     if (abs(d - dist) > min_dist && millis() - lastSent > 20)
     {
-      auto rssi = WiFi.RSSI();
       sprintf(mqMsgBuf, "{\"dist\": %d, \"tpe\": \"dist\", \"mac\": \"%s\", \"rssi\": %d}", d, mac.c_str(), rssi);
       sendNetMsg(mqMsgBuf);
     }

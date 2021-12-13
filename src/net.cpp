@@ -16,11 +16,10 @@ void startWifi(){
     WiFi.begin("cocwifi", "M@k3Pl@ysc@p3");
 
     auto startTs = millis();
-    auto connTime = 0;
     while (WiFi.status() != WL_CONNECTED) {
       Serial.print('.');
       delay(1000);
-      if (millis() - startTs > 60000){
+      if (millis() - startTs > 30000){
         Serial.println("Failed to connect to wifi, restart now");
         ESP.restart();
       }
